@@ -1,4 +1,4 @@
-const { puzzels } = require('./puzzleInputs');
+const { puzzles } = require('./PuzzleInputs');
 
 function generateCoordinates(instructions) {
   let [x, y] = [0, 0];
@@ -31,38 +31,37 @@ function generateCoordinates(instructions) {
   return coordinates;
 }
 
-function findCrossingPaths(a, b) {
-  const coordA = generateCoordinates(a);
-  const coordB = generateCoordinates(b);
+function findLowestProperty(matching, key) {
+  let bestMatch = matching[0];
+  matching.forEach(match => {
+    if (match[key] < bestMatch[key]) bestMatch = match;
+  });
+  return bestMatch;
+}
 
+function findCrossingPaths(a, b) {
+  console.log('Generating a...');
+  const coordA = generateCoordinates(a);
+  console.log('Generating b...');
+  const coordB = generateCoordinates(b);
+  console.log('Starting Matching...');
   const matching = [];
   coordA.forEach(({ x: aX, y: aY, steps: aSteps }) => {
     const match = coordB.find(({ x: bX, y: bY }) => aX === bX && aY === bY);
     if (match) {
+      match.distance = Math.abs(match.x) + Math.abs(match.y);
       match.aSteps = aSteps;
+      match.bSteps = match.steps;
+      match.steps += aSteps;
       matching.push(match);
+      console.log(match);
     }
   });
-  console.log(matching);
+  console.log('Identifying shortest distance...');
+  console.log('Shortest distance', findLowestProperty(matching, 'distance'));
+  console.log('Identifying fewest steps');
+  console.log('Fewest steps', findLowestProperty(matching, 'steps'));
   return matching;
 }
 
-function findDistance(a, b) {
-  const matching = findCrossingPaths(a, b);
-  let distance = null;
-  matching.forEach(({ x, y }) => {
-    const absX = Math.abs(x);
-    const absY = Math.abs(y);
-    if (absX + absY < distance || !distance) distance = absX + absY;
-  });
-  return distance;
-}
-
-function findSteps(a, b) {
-  const matching = findCrossingPaths(a, b);
-  let steps = null;
-  matching.forEach(({ steps: bSteps, aSteps }) => {
-    if (bSteps + aSteps < steps || !steps) steps = bSteps + aSteps;
-  });
-  return steps;
-}
+findCrossingPaths(puzzles.day3codeA, puzzles.day3codeB);
