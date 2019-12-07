@@ -1,24 +1,23 @@
-const { puzzels } = require('./puzzleInputs');
+const { puzzles } = require('./PuzzleInputs');
 
-// Day 1
-// Challenge 1
-function fuelReduce1(base) {
-  const reduced1 = base.reduce(function(accumulator, currentValue) {
-    return accumulator + Math.floor(parseInt(currentValue / 3)) - 2;
-  }, 0);
-  return reduced1;
-}
-
-// Challange 2
-function calcFuel(value) {
+function calcFuel1(value) {
   const calculated = Math.floor(value / 3) - 2;
   if (calculated <= 0) return 0;
-  return calcFuel(calculated) + calculated;
+  return calculated;
 }
 
-function fuelReduce2(base) {
-  const reduced2 = base.reduce(function(accumulator, currentValue) {
-    return accumulator + calcFuel(currentValue);
+function calcFuel2(value) {
+  const calculated = Math.floor(value / 3) - 2;
+  if (calculated <= 0) return 0;
+  return calcFuel2(calculated) + calculated;
+}
+
+function reduceFunction(input, func) {
+  const reduced2 = input.reduce(function(accumulator, currentValue) {
+    return accumulator + func(currentValue);
   }, 0);
   return reduced2;
 }
+
+console.log(reduceFunction(puzzles.day1code, calcFuel1));
+console.log(reduceFunction(puzzles.day1code, calcFuel2));
