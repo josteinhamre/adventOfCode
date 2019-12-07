@@ -1,4 +1,4 @@
-const { puzzels } = require('./puzzleInputs');
+const { puzzels } = require('./PuzzleInputs');
 
 function Intcode(prog, input = 1, pos = 0) {
   console.log('-------------');

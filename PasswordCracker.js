@@ -1,4 +1,4 @@
-const { puzzels } = require('./puzzleInputs');
+const { puzzles } = require('./PuzzleInputs');
 
 function oneDouble(string) {
   for (let i = 0; i < string.length - 1; i += 1) {
@@ -33,3 +33,5 @@ function testSequence(start, end) {
   }
   return validKeys;
 }
+
+console.log(testSequence(puzzles.day4code[0], puzzles.day4code[1]));

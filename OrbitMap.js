@@ -1,4 +1,4 @@
-const { puzzels } = require('./puzzleInputs');
+const { puzzles } = require('./PuzzleInputs');
 
 function createMap(input, object = {}) {
   const new_input = [];
@@ -37,3 +37,11 @@ function findPath(object) {
   const SANfiltered = filterOutMatching(SANarray, YOUarray);
   return YOUfiltered.length + SANfiltered.length;
 }
+
+function getSolutions(input) {
+  object = createMap(input);
+  console.log('Direct and indirect orbits:', findCount(object));
+  console.log('Transfers required to santa:', findPath(object));
+}
+
+getSolutions(puzzles.day6code);
