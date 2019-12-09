@@ -22,6 +22,7 @@ function opcode3(prog, pos, para, input, intcodeOutput) {
   console.log('Opcode: 3 - Get input');
   console.log(input);
   const currentInput = input.shift();
+  console.log('write:', para.Write1);
   console.log('Before Write:', prog[para.Write1]);
   prog[para.Write1] = currentInput;
   console.log('After Write:', prog[para.Write1]);
@@ -32,7 +33,10 @@ function opcode4(prog, pos, para, input, intcodeOutput) {
   if (!para.Mode1) console.log('Remote Value 1:', para.Read1);
   console.log('Test result:', para.Read1);
   intcodeOutput = para.Read1;
-  return Intcode(prog, input, pos + 2, intcodeOutput);
+  // Use for test 3
+  // return Intcode(prog, input, pos + 2, intcodeOutput);
+  // Use for test 4 - 6
+  return [intcodeOutput, prog, pos + 2];
 }
 function opcode5(prog, pos, para, input, intcodeOutput) {
   console.log('Opcode: 5 - Change Position if not 0');
@@ -48,7 +52,7 @@ function opcode6(prog, pos, para, input, intcodeOutput) {
   console.log('Perform:', para.Read1 === 0);
   console.log('New Pos:', para.Read2);
   if (para.Read1 === 0) {
-    return Intcode(prog, para.Read2, intcodeOutput);
+    return Intcode(prog, input, para.Read2, intcodeOutput);
   }
   return Intcode(prog, input, pos + 3, intcodeOutput);
 }
@@ -75,6 +79,13 @@ function Intcode(prog, input = [1], pos = 0, intcodeOutput = 0) {
   console.log('-------------');
   const para = {};
   para.inst = Array.from(String(prog[pos]), Number).reverse();
+  console.log(
+    'Opcodes',
+    prog[pos],
+    prog[pos + 1],
+    prog[pos + 2],
+    prog[pos + 3]
+  );
   para.opcode = (para.inst[1] || 0) * 10 + para.inst[0];
   para.Mode1 = para.inst[2] || 0;
   para.Mode2 = para.inst[3] || 0;
@@ -107,10 +118,10 @@ function Intcode(prog, input = [1], pos = 0, intcodeOutput = 0) {
     return opcode8(prog, pos, para, input, intcodeOutput);
   }
   if (para.opcode === 99) {
-    return [intcodeOutput, prog];
+    return [99, intcodeOutput, prog, pos];
   }
   console.log('error');
-  return 'error';
+  return [99, para.opcode, 'error'];
 }
 
 function IntcodeArgs(program, noun, verb) {
@@ -120,61 +131,68 @@ function IntcodeArgs(program, noun, verb) {
 }
 
 function findInputIntcode(program, desiredOutput) {
-  for (let i = 50; i < 100; i += 1) {
-    for (let j = 75; j < 100; j += 1) {
+  for (let i = 0; i < 100; i += 1) {
+    for (let j = 0; j < 100; j += 1) {
       const cleanProgram = Array.from(program);
+      console.log('-------------');
       console.log('input:', i, j);
       const computedOutput = IntcodeArgs(cleanProgram, i, j);
-      if (desiredOutput === computedOutput[0]) return 100 * i + j;
+      if (desiredOutput === computedOutput[2][0]) return 100 * i + j;
     }
   }
 }
 
-function generateSequencesV1() {
-  let output = { lastResult: 0 };
-
-  function loopAndExecute(
-    program,
-    array = [5, 6, 7, 8, 9],
-    lastResult = 0,
-    temp = []
-  ) {
-    if (!array.length && output.lastResult < lastResult) {
-      output = { lastResult, temp };
-    }
-    for (let pos = 0; pos < array.length; pos += 1) {
-      const [value] = array.splice(pos, 1);
-      const result = Intcode(program, [value, lastResult]);
-      loopAndExecute(program, array, result, temp.concat(value));
-      array.splice(pos, 0, value);
-    }
+function amplifierTest(
+  array = [[6, 0], [5], [7], [8], [9]],
+  programs = [
+    [...puzzles.day7code],
+    [...puzzles.day7code],
+    [...puzzles.day7code],
+    [...puzzles.day7code],
+    [...puzzles.day7code],
+  ],
+  positions = [0, 0, 0, 0, 0]
+) {
+  for (let i = 0; i < array.length; i += 1) {
+    const amp = Intcode(programs[i], array[i], positions[i]);
+    if (amp[0] === 99) return array[i][0];
+    array[(i + 1) % array.length].push(amp[0]);
+    positions[i] = amp[2];
   }
-  loopAndExecute(puzzles.day7code);
-  return output;
+  return amplifierTest(array, programs, positions);
 }
 
-function amplifierTest(array) {
-  const result = Intcode(program, [value, lastResult]);
-}
-
-function generateSequencesV2() {
+function generateSequencesV2(array) {
   let output = { result: 0 };
 
-  function loopAndExecute(program, array = [5, 6, 7, 8, 9], temp = []) {
+  function loopAndExecute(array, temp = []) {
     if (!array.length) {
-      result = amplifierTest(temp);
+      const tempIn = temp.map(n => [n]);
+      tempIn[0].push(0);
+      const result = amplifierTest(tempIn);
       if (result > output.result) {
         output = { result, temp };
       }
     }
     for (let pos = 0; pos < array.length; pos += 1) {
       const [value] = array.splice(pos, 1);
-      loopAndExecute(program, array, temp.concat(value));
+      loopAndExecute(array, temp.concat(value));
       array.splice(pos, 0, value);
     }
   }
-  loopAndExecute(puzzles.day7code);
+  loopAndExecute(array);
   return output;
 }
-// console.log(generateSequencesV2());
-console.log(Intcode([puzzles.day7code], [1, 0]));
+
+// Test 1
+// console.log(IntcodeArgs(puzzles.day2code, 12, 2));
+// Test 2
+// console.log(findInputIntcode(puzzles.day2code, 19690720));
+// Test 3
+// console.log(Intcode(puzzles.day5code)[1]);
+// Test 4
+// console.log(Intcode(puzzles.day5code, [5, 0])[0]);
+// Test 5
+// console.log(generateSequencesV2([0, 1, 2, 3, 4]));
+// Test 6
+// console.log(generateSequencesV2([5, 6, 7, 8, 9]));
