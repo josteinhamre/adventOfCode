@@ -1,128 +1,73 @@
 const { puzzles } = require('./PuzzleInputs');
 
-function opcode1(prog, pos, para, input, intcodeOutput) {
-  console.log('opcode 1 - Add');
-  console.log('Before Write:', prog[para.Write3]);
-  console.log(!para.Mode1 ? 'Remote Value 1:' : 'Local Value 1:', para.Read1);
-  console.log(!para.Mode2 ? 'Remote Value 2:' : 'Local Value 2:', para.Read2);
-  prog[para.Write3] = para.Read1 + para.Read2;
-  console.log('After Write:', prog[para.Write3]);
-  return Intcode(prog, input, pos + 4, intcodeOutput);
-}
-function opcode2(prog, pos, para, input, intcodeOutput) {
-  console.log('Opcode: 2 - Multiply');
-  console.log('Before Write:', prog[para.Write3]);
-  console.log(!para.Mode1 ? 'Remote Value 1:' : 'Local Value 1:', para.Read1);
-  console.log(!para.Mode2 ? 'Remote Value 2:' : 'Local Value 2:', para.Read2);
-  prog[para.Write3] = para.Read1 * para.Read2;
-  console.log('After Write:', prog[para.Write3]);
-  return Intcode(prog, input, pos + 4, intcodeOutput);
-}
-function opcode3(prog, pos, para, input, intcodeOutput) {
-  console.log('Opcode: 3 - Get input');
-  console.log(input);
-  const currentInput = input.shift();
-  console.log('write:', para.Write1);
-  console.log('Before Write:', prog[para.Write1]);
-  prog[para.Write1] = currentInput;
-  console.log('After Write:', prog[para.Write1]);
-  return Intcode(prog, input, pos + 2, intcodeOutput);
-}
-function opcode4(prog, pos, para, input, intcodeOutput) {
-  console.log('Opcode: 4 - Give output');
-  if (!para.Mode1) console.log('Remote Value 1:', para.Read1);
-  console.log('Test result:', para.Read1);
-  intcodeOutput = para.Read1;
-  // Use for test 3
-  // return Intcode(prog, input, pos + 2, intcodeOutput);
-  // Use for test 4 - 6
-  return [intcodeOutput, prog, pos + 2];
-}
-function opcode5(prog, pos, para, input, intcodeOutput) {
-  console.log('Opcode: 5 - Change Position if not 0');
-  console.log('Perform:', para.Read1 !== 0);
-  console.log('New Pos:', para.Read2);
-  if (para.Read1 !== 0) {
-    return Intcode(prog, input, para.Read2, intcodeOutput);
+function Intcode(program, input = [1], pos = 0, looping = false) {
+  const prog = [...program]
+  let [inst, opcode, Mode1, Mode2, Mode3, relativeBase] = [[], 0, 0, 0 ,0, 0]
+  let [Read1, Read2, Write1, Write3, exitCode, intcodeOutput] = [0, 0, 0 ,0, 0, 0]
+
+  while (exitCode !== 99) {
+    inst = Array.from(String(prog[pos]), Number).reverse();
+    opcode = (inst[1] || 0) * 10 + inst[0];
+    Mode1 = inst[2] || 0;
+    Mode2 = inst[3] || 0;
+    Mode3 = inst[4] || 0;
+    if (Mode1 === 0) Read1 = prog[prog[pos + 1]];
+    if (Mode1 === 1) Read1 = prog[pos + 1];
+    if (Mode1 === 2) Read1 = prog[relativeBase + prog[pos + 1]];
+    if (Mode2 === 0) Read2 = prog[prog[pos + 2]];
+    if (Mode2 === 1) Read2 = prog[pos + 2];
+    if (Mode2 === 2) Read2 = prog[relativeBase + prog[pos + 2]];
+    if (Read1 === undefined) Read1 = 0;
+    if (Read2 === undefined) Read2 = 0;
+    if (Mode1 === 0) Write1 = prog[pos + 1];
+    if (Mode1 === 2) Write1 = relativeBase + prog[pos + 1];
+    if (Mode3 === 0) Write3 = prog[pos + 3];
+    if (Mode3 === 2) Write3 = relativeBase + prog[pos + 3];
+    if (opcode === 1) {
+      prog[Write3] = Read1 + Read2;
+      pos += 4
+    } else if (opcode === 2) {
+      prog[Write3] = Read1 * Read2;
+      pos += 4
+    } else if (opcode === 3) {
+      const currentInput = input.shift();
+      prog[Write1] = currentInput;
+      pos += 2
+    } else if (opcode === 4) {
+      intcodeOutput = Read1;
+      pos += 2
+      if (looping) return [exitCode, intcodeOutput, pos]
+    } else if (opcode === 5) {
+      if (Read1 !== 0) {
+        pos = Read2
+      } else {
+        pos += 3
+      }
+    } else if (opcode === 6) {
+      if (Read1 === 0) {
+        pos = Read2
+      } else {
+        pos += 3
+      }
+    } else if (opcode === 7) {
+      prog[Write3] = Read1 < Read2 ? 1 : 0;
+      pos += 4
+    } else if (opcode === 8) {
+      prog[Write3] = Read1 === Read2 ? 1 : 0;
+      pos += 4
+    } else if (opcode === 9) {
+      relativeBase += Read1
+      pos += 2
+    } else if (opcode === 99) {
+      exitCode = 99
+    } else {
+      exitCode = 99
+      console.log('error', opcode)
+    }
   }
-  return Intcode(prog, input, pos + 3, intcodeOutput);
-}
-function opcode6(prog, pos, para, input, intcodeOutput) {
-  console.log('Opcode: 6 - Change Position if 0');
-  console.log('Perform:', para.Read1 === 0);
-  console.log('New Pos:', para.Read2);
-  if (para.Read1 === 0) {
-    return Intcode(prog, input, para.Read2, intcodeOutput);
-  }
-  return Intcode(prog, input, pos + 3, intcodeOutput);
-}
-function opcode7(prog, pos, para, input, intcodeOutput) {
-  console.log('Opcode: 7 - 1 smaller then 2');
-  console.log('Before Write:', prog[para.Write3]);
-  console.log(!para.Mode1 ? 'Remote Value 1:' : 'Local Value 1:', para.Read1);
-  console.log(!para.Mode2 ? 'Remote Value 2:' : 'Local Value 2:', para.Read2);
-  console.log('Value:', para.Read1 < para.Read2 ? 1 : 0);
-  prog[para.Write3] = para.Read1 < para.Read2 ? 1 : 0;
-  return Intcode(prog, input, pos + 4, intcodeOutput);
-}
-function opcode8(prog, pos, para, input, intcodeOutput) {
-  console.log('Opcode: 8 - 1 equal to 2');
-  console.log('Before Write:', prog[para.Write3]);
-  console.log(!para.Mode1 ? 'Remote Value 1:' : 'Local Value 1:', para.Read1);
-  console.log(!para.Mode2 ? 'Remote Value 2:' : 'Local Value 2:', para.Read2);
-  console.log('Value:', para.Read1 === para.Read2 ? 1 : 0);
-  prog[para.Write3] = para.Read1 === para.Read2 ? 1 : 0;
-  return Intcode(prog, input, pos + 4, intcodeOutput);
+  return [exitCode, intcodeOutput, prog[0]];
 }
 
-function Intcode(prog, input = [1], pos = 0, intcodeOutput = 0) {
-  console.log('-------------');
-  const para = {};
-  para.inst = Array.from(String(prog[pos]), Number).reverse();
-  console.log(
-    'Opcodes',
-    prog[pos],
-    prog[pos + 1],
-    prog[pos + 2],
-    prog[pos + 3]
-  );
-  para.opcode = (para.inst[1] || 0) * 10 + para.inst[0];
-  para.Mode1 = para.inst[2] || 0;
-  para.Mode2 = para.inst[3] || 0;
-  para.Read1 = para.Mode1 === 1 ? prog[pos + 1] : prog[prog[pos + 1]];
-  para.Read2 = para.Mode2 === 1 ? prog[pos + 2] : prog[prog[pos + 2]];
-  para.Write1 = prog[pos + 1];
-  para.Write3 = prog[pos + 3];
-  if (para.opcode === 1) {
-    return opcode1(prog, pos, para, input, intcodeOutput);
-  }
-  if (para.opcode === 2) {
-    return opcode2(prog, pos, para, input, intcodeOutput);
-  }
-  if (para.opcode === 3) {
-    return opcode3(prog, pos, para, input, intcodeOutput);
-  }
-  if (para.opcode === 4) {
-    return opcode4(prog, pos, para, input, intcodeOutput);
-  }
-  if (para.opcode === 5) {
-    return opcode5(prog, pos, para, input, intcodeOutput);
-  }
-  if (para.opcode === 6) {
-    return opcode6(prog, pos, para, input, intcodeOutput);
-  }
-  if (para.opcode === 7) {
-    return opcode7(prog, pos, para, input, intcodeOutput);
-  }
-  if (para.opcode === 8) {
-    return opcode8(prog, pos, para, input, intcodeOutput);
-  }
-  if (para.opcode === 99) {
-    return [99, intcodeOutput, prog, pos];
-  }
-  console.log('error');
-  return [99, para.opcode, 'error'];
-}
 
 function IntcodeArgs(program, noun, verb) {
   program[1] = noun;
@@ -134,10 +79,8 @@ function findInputIntcode(program, desiredOutput) {
   for (let i = 0; i < 100; i += 1) {
     for (let j = 0; j < 100; j += 1) {
       const cleanProgram = Array.from(program);
-      console.log('-------------');
-      console.log('input:', i, j);
       const computedOutput = IntcodeArgs(cleanProgram, i, j);
-      if (desiredOutput === computedOutput[2][0]) return 100 * i + j;
+      if (desiredOutput === computedOutput[2]) return 100 * i + j;
     }
   }
 }
@@ -154,9 +97,9 @@ function amplifierTest(
   positions = [0, 0, 0, 0, 0]
 ) {
   for (let i = 0; i < array.length; i += 1) {
-    const amp = Intcode(programs[i], array[i], positions[i]);
+    const amp = Intcode(programs[i], array[i], positions[i], true);
     if (amp[0] === 99) return array[i][0];
-    array[(i + 1) % array.length].push(amp[0]);
+    array[(i + 1) % array.length].push(amp[1]);
     positions[i] = amp[2];
   }
   return amplifierTest(array, programs, positions);
@@ -185,14 +128,26 @@ function generateSequencesV2(array) {
 }
 
 // Test 1
-// console.log(IntcodeArgs(puzzles.day2code, 12, 2));
+console.log('Test 1')
+console.log(IntcodeArgs(puzzles.day2code, 12, 2)[2]);
 // Test 2
-// console.log(findInputIntcode(puzzles.day2code, 19690720));
+console.log('Test 2')
+console.log(findInputIntcode(puzzles.day2code, 19690720));
 // Test 3
-// console.log(Intcode(puzzles.day5code)[1]);
+console.log('Test 3')
+console.log(Intcode(puzzles.day5code)[1]);
 // Test 4
-// console.log(Intcode(puzzles.day5code, [5, 0])[0]);
+console.log('Test 4')
+console.log(Intcode(puzzles.day5code, [5, 0])[1]);
 // Test 5
-// console.log(generateSequencesV2([0, 1, 2, 3, 4]));
+console.log('Test 5')
+console.log(generateSequencesV2([0, 1, 2, 3, 4]).result);
 // Test 6
-// console.log(generateSequencesV2([5, 6, 7, 8, 9]));
+console.log('Test 6')
+console.log(generateSequencesV2([5, 6, 7, 8, 9]).result);
+// Test 7
+console.log('Test 7')
+console.log(Intcode(puzzles.day9code)[1]);
+// Test 8
+console.log('Test 8')
+console.log(Intcode(puzzles.day9code, [2])[1]);
